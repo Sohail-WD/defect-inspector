@@ -1,1 +1,3 @@
 data/
+results/*.npy
+results/preview.png
