@@ -29,4 +29,15 @@ Use it in your detector:
     d["test_masks"]     # (83, 256, 256) bool, True = defect pixel
     d["test_types"]     # "good", "broken_large", "broken_small", "contamination"
 
-Needs: numpy, Pillow.
+## Scoring
+
+Once your detect(image) returns a 256x256 heatmap, score it with:
+
+    from evaluate import run
+    run(detect, name="vae")      # or "padim", "diffusion"
+
+It prints image AUROC (is the bottle defective?) and pixel AUROC (is the heatmap
+in the right place?), from 0.5 = guessing to 1.0 = perfect, and saves them to
+results/<name>.json for the final table.
+
+Needs: numpy, Pillow, scikit-learn.
