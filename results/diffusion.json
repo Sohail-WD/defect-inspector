@@ -1,0 +1,88 @@
+{
+  "detector": "Diffusion healing (DDPM)",
+  "category": "bottle",
+  "train_steps": 40000,
+  "img_size": 64,
+  "best_t_start": 50,
+  "image_auroc": 0.9896825396825397,
+  "pixel_auroc": 0.9577434255397185,
+  "eval_size": 256,
+  "per_type": [
+    {
+      "defect type": "broken_large",
+      "n": 20,
+      "image AUROC (vs good)": 1.0,
+      "pixel AUROC": 0.9603
+    },
+    {
+      "defect type": "broken_small",
+      "n": 22,
+      "image AUROC (vs good)": 1.0,
+      "pixel AUROC": 0.9809
+    },
+    {
+      "defect type": "contamination",
+      "n": 21,
+      "image AUROC (vs good)": 0.969,
+      "pixel AUROC": 0.9234
+    },
+    {
+      "defect type": "ALL",
+      "n": 63,
+      "image AUROC (vs good)": 0.9897,
+      "pixel AUROC": 0.9577
+    }
+  ],
+  "sweep": [
+    {
+      "t_start": 50,
+      "image_auroc": 0.9897,
+      "pixel_auroc": 0.9577
+    },
+    {
+      "t_start": 75,
+      "image_auroc": 0.981,
+      "pixel_auroc": 0.9543
+    },
+    {
+      "t_start": 100,
+      "image_auroc": 0.9762,
+      "pixel_auroc": 0.9519
+    },
+    {
+      "t_start": 125,
+      "image_auroc": 0.973,
+      "pixel_auroc": 0.9489
+    },
+    {
+      "t_start": 150,
+      "image_auroc": 0.9595,
+      "pixel_auroc": 0.9447
+    },
+    {
+      "t_start": 200,
+      "image_auroc": 0.9389,
+      "pixel_auroc": 0.9354
+    },
+    {
+      "t_start": 250,
+      "image_auroc": 0.9238,
+      "pixel_auroc": 0.9271
+    },
+    {
+      "t_start": 300,
+      "image_auroc": 0.9016,
+      "pixel_auroc": 0.9164
+    },
+    {
+      "t_start": 400,
+      "image_auroc": 0.8286,
+      "pixel_auroc": 0.8915
+    },
+    {
+      "t_start": 500,
+      "image_auroc": 0.8095,
+      "pixel_auroc": 0.8464
+    }
+  ]
+}
