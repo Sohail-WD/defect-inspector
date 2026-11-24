@@ -5,6 +5,9 @@
 fig_padim.png: one typical bottle per type (the median-scoring one, so not cherry-picked):
 the photo, the PaDiM heatmap on top of it, the true defect, and the verdict at the cut-off.
 results_table.md + fig_results.png: all detectors side by side, from results/<name>.json.
+fig_compare.png: the same bottles through all three detectors. Needs results/padim_heatmaps.npy
+(python -m detectors.padim), results/vae_heatmaps.npy and results/diffusion_heatmaps.npz
+(exported from the VAE and diffusion notebooks; in the same test order as data.py).
 """
 import json
 from pathlib import Path
@@ -95,6 +98,43 @@ def results_table(out_md="results/results_table.md", out_png="results/fig_result
     print("saved", out_md, "and", out_png)
 
 
+def compare_figure(d, out="results/fig_compare.png"):
+    diff = np.load("results/diffusion_heatmaps.npz", allow_pickle=False)
+    maps = {"padim": np.load("results/padim_heatmaps.npy"),
+            "vae": np.load("results/vae_heatmaps.npy"),
+            "diffusion": diff["heatmap_256"].astype(np.float32)}
+    for m in maps.values():
+        assert m.shape == d["test_masks"].shape, "heatmaps must be one 256x256 map per test image, in data.py order"
+    cut = {k: json.loads(Path(f"results/{k}.json").read_text())["threshold"] for k in maps}
+    # Each detector's heatmap is in its own units, so show it as a multiple of its own cut-off: 1.0 = the decision line.
+    rel = {k: maps[k] / cut[k] for k in maps}
+    healed = diff["healed_64"].astype(np.float32).transpose(0, 2, 3, 1)
+
+    rows = typical_per_type(d["test_types"], maps["padim"].reshape(len(d["test_types"]), -1).max(1))  # same bottles as fig_padim
+    cols = ["photo", "MLE (PaDiM)", "VAE", "diffusion: healed", "diffusion", "true defect"]
+    fig, ax = plt.subplots(len(rows), len(cols), figsize=(2.6 * len(cols), 2.9 * len(rows)))
+    for r, i in enumerate(rows):
+        ax[r, 0].imshow(d["test_images"][i])
+        ax[r, 0].set_ylabel(d["test_types"][i].replace("_", " "), fontsize=12)
+        for c, k in zip((1, 2, 4), ("padim", "vae", "diffusion")):
+            im = ax[r, c].imshow(rel[k][i], cmap="jet", vmin=0, vmax=2)
+            s = rel[k][i].max()
+            ax[r, c].set_xlabel(f"{s:.1f}x cut-off: {'defect' if s >= 1 else 'good'}", fontsize=9)
+        ax[r, 3].imshow(np.clip(healed[i], 0, 1))
+        ax[r, 5].imshow(d["test_masks"][i], cmap="gray", vmin=0, vmax=1)
+    for c, title in enumerate(cols):
+        ax[0, c].set_title(title, fontsize=11)
+    for a in ax.ravel():
+        a.set_xticks([]); a.set_yticks([])
+    fig.colorbar(im, ax=ax, fraction=0.015, pad=0.01, label="heatmap / cut-off  (1 = decision line)")
+    fig.suptitle("Same bottles, three detectors trained only on good bottles", fontsize=14, y=0.93)
+    fig.savefig(out, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    print("saved", out)
+
+
 if __name__ == "__main__":
-    padim_figure(load_mvtec())
+    d = load_mvtec()
+    padim_figure(d)
     results_table()
+    compare_figure(d)
