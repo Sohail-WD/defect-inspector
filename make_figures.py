@@ -4,6 +4,7 @@
 
 fig_padim.png: one typical bottle per type (the median-scoring one, so not cherry-picked):
 the photo, the PaDiM heatmap on top of it, the true defect, and the verdict at the cut-off.
+results_table.md + fig_results.png: all detectors side by side, from results/<name>.json.
 """
 import json
 from pathlib import Path
@@ -55,5 +56,45 @@ def padim_figure(d, out="results/fig_padim.png"):
     print("saved", out)
 
 
+DETECTORS = [("padim", "MLE (PaDiM)"), ("vae", "VAE"), ("diffusion", "Diffusion healing")]   # course order
+
+
+def results_table(out_md="results/results_table.md", out_png="results/fig_results.png"):
+    rows = []
+    for key, name in DETECTORS:
+        path = Path(f"results/{key}.json")
+        if not path.exists():
+            print(f"skipping {name}: {path} not found")
+            continue
+        r = json.loads(path.read_text())
+        rows.append((name, r["image_auroc"], r["pixel_auroc"], r["threshold"], r["accuracy"]))
+    assert rows, "no results/<name>.json files found"
+
+    lines = ["| Detector | Image AUROC | Pixel AUROC | Cut-off | Accuracy at cut-off |",
+             "|---|---|---|---|---|"]
+    lines += [f"| {n} | {i:.3f} | {p:.3f} | {t:.4g} | {a:.1%} |" for n, i, p, t, a in rows]
+    lines += ["", "AUROC: 0.5 = guessing, 1.0 = perfect. Cut-offs are picked on the test set, so accuracy is optimistic."]
+    Path(out_md).write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+    names = [r[0] for r in rows]
+    x = np.arange(len(rows))
+    fig, ax = plt.subplots(figsize=(7, 4))
+    for k, (label, col) in enumerate([("Image AUROC", 1), ("Pixel AUROC", 2)]):
+        vals = [r[col] for r in rows]
+        bars = ax.bar(x + (k - 0.5) * 0.38, vals, 0.38, label=label)
+        ax.bar_label(bars, fmt="%.3f", fontsize=9)
+    ax.set_xticks(x, names)
+    ax.set_ylim(0.5, 1.02)                  # 0.5 = guessing, so bars start where a useless detector would sit
+    ax.set_ylabel("AUROC (0.5 = guessing)")
+    ax.set_title("Finding defects with only good bottles: three detectors")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=2, frameon=False)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=150)
+    plt.close(fig)
+    print("saved", out_md, "and", out_png)
+
+
 if __name__ == "__main__":
     padim_figure(load_mvtec())
+    results_table()
