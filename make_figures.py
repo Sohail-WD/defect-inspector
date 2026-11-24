@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")                       # save to file, no window
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import roc_auc_score
 
 from data import load_mvtec
 
@@ -98,17 +99,45 @@ def results_table(out_md="results/results_table.md", out_png="results/fig_result
     print("saved", out_md, "and", out_png)
 
 
-def compare_figure(d, out="results/fig_compare.png"):
+def load_maps(d):
+    """All three detectors' test heatmaps (in data.py order), plus diffusion's healed images."""
     diff = np.load("results/diffusion_heatmaps.npz", allow_pickle=False)
-    maps = {"padim": np.load("results/padim_heatmaps.npy"),
-            "vae": np.load("results/vae_heatmaps.npy"),
-            "diffusion": diff["heatmap_256"].astype(np.float32)}
+    maps = {"padim": np.load("results/padim_heatmaps.npy"),       # python -m detectors.padim
+            "vae": np.load("results/vae_heatmaps.npy"),           # python -m detectors.vae path/to/vae.pt
+            "diffusion": diff["heatmap_256"].astype(np.float32)}  # exported by detectors/diffusion_healing.ipynb
     for m in maps.values():
         assert m.shape == d["test_masks"].shape, "heatmaps must be one 256x256 map per test image, in data.py order"
+    assert [p.replace("\\", "/") for p in diff["paths"]] == \
+        [str(Path(p).relative_to(Path(p).parents[2])).replace("\\", "/") for p in d["test_paths"]], "diffusion export is in a different order"
+    return maps, diff["healed_64"].astype(np.float32).transpose(0, 2, 3, 1)
+
+
+def per_type_table(d, maps, out_md="results/results_table.md"):
+    """Image AUROC (each defect type vs the good bottles) and pixel AUROC, per defect type. Appended to the table."""
+    types = np.array(d["test_types"])
+    good = types == "good"
+    lines = ["", "### By defect type", "",
+             "| Defect type | n | " + " | ".join(f"{n} image / pixel" for _, n in DETECTORS) + " |",
+             "|---|---|" + "---|" * len(DETECTORS)]
+    for t in ["broken_large", "broken_small", "contamination"]:
+        sel = types == t
+        cells = []
+        for key, _ in DETECTORS:
+            m = maps[key]
+            img = roc_auc_score(np.r_[np.zeros(good.sum()), np.ones(sel.sum())],
+                                np.r_[m[good].reshape(good.sum(), -1).max(1), m[sel].reshape(sel.sum(), -1).max(1)])
+            pix = roc_auc_score(d["test_masks"][sel].ravel(), m[sel].ravel())
+            cells.append(f"{img:.3f} / {pix:.3f}")
+        lines.append(f"| {t.replace('_', ' ')} | {sel.sum()} | " + " | ".join(cells) + " |")
+    with open(out_md, "a") as f:
+        f.write("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
+def compare_figure(d, maps, healed, out="results/fig_compare.png"):
     cut = {k: json.loads(Path(f"results/{k}.json").read_text())["threshold"] for k in maps}
     # Each detector's heatmap is in its own units, so show it as a multiple of its own cut-off: 1.0 = the decision line.
     rel = {k: maps[k] / cut[k] for k in maps}
-    healed = diff["healed_64"].astype(np.float32).transpose(0, 2, 3, 1)
 
     rows = typical_per_type(d["test_types"], maps["padim"].reshape(len(d["test_types"]), -1).max(1))  # same bottles as fig_padim
     cols = ["photo", "MLE (PaDiM)", "VAE", "diffusion: healed", "diffusion", "true defect"]
@@ -137,4 +166,6 @@ if __name__ == "__main__":
     d = load_mvtec()
     padim_figure(d)
     results_table()
-    compare_figure(d)
+    maps, healed = load_maps(d)
+    per_type_table(d, maps)
+    compare_figure(d, maps, healed)
