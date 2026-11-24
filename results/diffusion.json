@@ -84,5 +84,7 @@
       "image_auroc": 0.8095,
       "pixel_auroc": 0.8464
     }
-  ]
+  ],
+  "threshold": 0.143798828125,
+  "accuracy": 0.963855421686747
 }
