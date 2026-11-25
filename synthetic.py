@@ -22,9 +22,9 @@ SIZE, CX = 256, 127.5
 RIM = (62, 108)          # where breaks and chips go
 INSIDE = (5, 95)         # where contamination goes
 KINDS = ("broken", "contamination")
-PROMPTS = {
-    "broken": "broken glass, a cracked and chipped glass bottle rim, shattered glass shards, macro photo, top-down view",
-    "contamination": "a dark foreign object stuck inside a glass bottle, dirt contamination, macro photo, top-down view",
+PROMPTS = {   # written for a zoomed-in crop around the defect (see make_diffusion_defects.py)
+    "broken": "close-up of broken glass, a sharp jagged crack with bright white chipped edges and glass shards, high detail macro photo",
+    "contamination": "close-up of a dark black piece of dirt and debris lying on glass, foreign particle contamination, high detail macro photo",
 }
 NEGATIVE = "text, watermark, cartoon, painting, blurry"
 

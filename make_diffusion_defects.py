@@ -22,6 +22,16 @@ from synthetic import KINDS, NEGATIVE, PROMPTS, make_mask, save
 
 MODEL = "stable-diffusion-v1-5/stable-diffusion-inpainting"
 RES = 512                # Stable Diffusion 1.5 works at 512x512
+GUIDANCE = 11.0          # stronger pull towards the prompt than the usual 7.5
+
+
+def window(mask, min_size=96, zoom=2.5):
+    """Square crop box (y, x, size) around the mask, about 2.5x the defect's extent, kept inside the image."""
+    ys, xs = np.nonzero(mask)
+    size = int(np.clip(zoom * max(np.ptp(ys), np.ptp(xs)), min_size, mask.shape[0]))
+    y = int(np.clip((ys.min() + ys.max()) / 2 - size / 2, 0, mask.shape[0] - size))
+    x = int(np.clip((xs.min() + xs.max()) / 2 - size / 2, 0, mask.shape[1] - size))
+    return y, x, size
 
 
 def main(n, out_dir, steps, seed, batch):
@@ -46,19 +56,31 @@ def main(n, out_dir, steps, seed, batch):
             group = [j for j in jobs if j[1] == kind]
             if not group:
                 continue
-            # Slightly grown mask for the model, so it blends the edge; the saved mask stays the one we drew.
-            grown = [Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9)) for _, _, _, m in group]
+            # Zoom in: a small mask on the full bottle gets "healed" into normal glass, because the surroundings
+            # outweigh the prompt. So inpaint a crop around the mask, enlarged to 512, then shrink it back.
+            boxes, crops, crop_masks = [], [], []
+            for _, _, s, m in group:
+                y, x, size = window(m)
+                grown = Image.fromarray((m[y:y + size, x:x + size] * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))
+                boxes.append((y, x, size))
+                crops.append(Image.fromarray(good[s][y:y + size, x:x + size]).resize((RES, RES), Image.BICUBIC))
+                crop_masks.append(grown.resize((RES, RES), Image.NEAREST))
             out = pipe(prompt=[PROMPTS[kind]] * len(group), negative_prompt=[NEGATIVE] * len(group),
-                       image=[Image.fromarray(good[s]) for _, _, s, _ in group], mask_image=grown,
-                       num_inference_steps=steps, guidance_scale=7.5, height=RES, width=RES,
+                       image=crops, mask_image=crop_masks,
+                       num_inference_steps=steps, guidance_scale=GUIDANCE, height=RES, width=RES,
                        generator=torch.Generator(device).manual_seed(seed + start)).images
-            for (i, k, s, m), img, g in zip(group, out, grown):
-                soft = np.asarray(g.filter(ImageFilter.GaussianBlur(3)), dtype=np.float32)[..., None] / 255
-                fake = np.asarray(img.resize((RES, RES)), dtype=np.float32)
-                images.append((good[s] * (1 - soft) + fake * soft).astype(np.uint8))   # outside the mask: original pixels
+            for (i, k, s, m), img, cm, (y, x, size) in zip(group, out, crop_masks, boxes):
+                soft = np.asarray(cm.resize((size, size), Image.BILINEAR).filter(ImageFilter.GaussianBlur(2)),
+                                  dtype=np.float32)[..., None] / 255
+                fake = np.asarray(img.resize((size, size), Image.LANCZOS), dtype=np.float32)
+                result = good[s].copy()
+                patch = result[y:y + size, x:x + size].astype(np.float32)
+                result[y:y + size, x:x + size] = (patch * (1 - soft) + fake * soft).astype(np.uint8)   # outside the mask: original pixels
+                images.append(result)
                 masks.append(m)
                 meta.append({"id": len(meta), "kind": k, "source_train_index": s, "method": "diffusion",
-                             "model": MODEL, "prompt": PROMPTS[k], "steps": steps})
+                             "model": MODEL, "prompt": PROMPTS[k], "steps": steps, "guidance": GUIDANCE,
+                             "zoom_window": [y, x, size]})
         print(f"{len(images)}/{n} done", flush=True)
     save(out_dir, images, masks, meta)
     print(f"saved {len(images)} diffusion fakes to {out_dir}")
@@ -68,7 +90,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--n", type=int, default=150)
     p.add_argument("--out", default="data/synthetic/diffusion")
-    p.add_argument("--steps", type=int, default=30)
+    p.add_argument("--steps", type=int, default=40)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--batch", type=int, default=8)
     a = p.parse_args()
