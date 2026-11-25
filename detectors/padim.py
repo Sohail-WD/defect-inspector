@@ -49,7 +49,7 @@ class PaDiM:
         n = f.shape[0]
         self.mu = f.mean(0)                                    # (D, P)
         c = f - self.mu
-        cov = torch.einsum("ndp,nep->pde", c, c) / (n - 1)     # (P, D, D), MLE-style covariance per position
+        cov = torch.einsum("ndp,nep->pde", c, c) / max(n - 1, 1)   # (P, D, D) per position; one photo -> zero spread, not 0/0
         cov += 0.01 * torch.eye(D)                             # keeps it invertible with only ~209 images
         self.cov_inv = torch.linalg.inv(cov)
         return self

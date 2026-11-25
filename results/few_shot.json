@@ -1,0 +1,134 @@
+{
+  "runs": [
+    {
+      "k": 1,
+      "seed": 0,
+      "image_auroc": 0.9801587301587302,
+      "pixel_auroc": 0.955141924111311
+    },
+    {
+      "k": 1,
+      "seed": 1,
+      "image_auroc": 0.9912698412698413,
+      "pixel_auroc": 0.9529906478237398
+    },
+    {
+      "k": 1,
+      "seed": 2,
+      "image_auroc": 0.9531746031746032,
+      "pixel_auroc": 0.9429558671168756
+    },
+    {
+      "k": 5,
+      "seed": 0,
+      "image_auroc": 0.9841269841269842,
+      "pixel_auroc": 0.9755178706730769
+    },
+    {
+      "k": 5,
+      "seed": 1,
+      "image_auroc": 0.9888888888888889,
+      "pixel_auroc": 0.9754112686883993
+    },
+    {
+      "k": 5,
+      "seed": 2,
+      "image_auroc": 0.9793650793650793,
+      "pixel_auroc": 0.975357331194551
+    },
+    {
+      "k": 10,
+      "seed": 0,
+      "image_auroc": 0.9952380952380953,
+      "pixel_auroc": 0.9795199551654309
+    },
+    {
+      "k": 10,
+      "seed": 1,
+      "image_auroc": 0.9920634920634921,
+      "pixel_auroc": 0.9791309311196501
+    },
+    {
+      "k": 10,
+      "seed": 2,
+      "image_auroc": 0.9896825396825397,
+      "pixel_auroc": 0.979501301642999
+    },
+    {
+      "k": 50,
+      "seed": 0,
+      "image_auroc": 0.9944444444444444,
+      "pixel_auroc": 0.9843680434984274
+    },
+    {
+      "k": 50,
+      "seed": 1,
+      "image_auroc": 0.9880952380952381,
+      "pixel_auroc": 0.984065219223949
+    },
+    {
+      "k": 50,
+      "seed": 2,
+      "image_auroc": 0.9968253968253968,
+      "pixel_auroc": 0.9841961561141745
+    },
+    {
+      "k": 209,
+      "seed": 0,
+      "image_auroc": 0.996031746031746,
+      "pixel_auroc": 0.9848778787900876
+    }
+  ],
+  "summary": [
+    {
+      "k": 1,
+      "draws": 3,
+      "image_auroc_mean": 0.974867724867725,
+      "image_auroc_std": 0.01599599625167298,
+      "image_auroc_min": 0.9531746031746032,
+      "pixel_auroc_mean": 0.9503628130173087,
+      "pixel_auroc_std": 0.005310626648229293,
+      "pixel_auroc_min": 0.9429558671168756
+    },
+    {
+      "k": 5,
+      "draws": 3,
+      "image_auroc_mean": 0.9841269841269842,
+      "image_auroc_std": 0.0038880789567987267,
+      "image_auroc_min": 0.9793650793650793,
+      "pixel_auroc_mean": 0.9754288235186758,
+      "pixel_auroc_std": 6.670512269617594e-05,
+      "pixel_auroc_min": 0.975357331194551
+    },
+    {
+      "k": 10,
+      "draws": 3,
+      "image_auroc_mean": 0.9923280423280424,
+      "image_auroc_std": 0.002275747425143544,
+      "image_auroc_min": 0.9896825396825397,
+      "pixel_auroc_mean": 0.9793840626426933,
+      "pixel_auroc_std": 0.00017915294107440563,
+      "pixel_auroc_min": 0.9791309311196501
+    },
+    {
+      "k": 50,
+      "draws": 3,
+      "image_auroc_mean": 0.9931216931216932,
+      "image_auroc_std": 0.003684758803487836,
+      "image_auroc_min": 0.9880952380952381,
+      "pixel_auroc_mean": 0.9842098062788504,
+      "pixel_auroc_std": 0.00012400371110067726,
+      "pixel_auroc_min": 0.984065219223949
+    },
+    {
+      "k": 209,
+      "draws": 1,
+      "image_auroc_mean": 0.996031746031746,
+      "image_auroc_std": 0.0,
+      "image_auroc_min": 0.996031746031746,
+      "pixel_auroc_mean": 0.9848778787900876,
+      "pixel_auroc_std": 0.0,
+      "pixel_auroc_min": 0.9848778787900876
+    }
+  ]
+}
