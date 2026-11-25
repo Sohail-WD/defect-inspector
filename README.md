@@ -38,6 +38,8 @@ Image AUROC: is the bottle defective? Pixel AUROC: is the heatmap in the right p
 | `detectors/vae.ipynb` | Detector 2: VAE training notebook (Colab) | Shruti |
 | `detectors/vae.py` | Loads the trained `vae.pt` and makes VAE heatmaps | Shruti / Sohail |
 | `detectors/diffusion_healing.ipynb` | Detector 3: DDPM training, healing, noise-level tuning (Colab) | Raju |
+| `detectors/diffusion.py` | Loads the trained DDPM and heals bottles on a CPU (~3 s each) | Raju / Sohail |
+| `demo.py` | Demo app: upload a bottle, see all three heatmaps and the verdict | Sohail |
 | `make_figures.py` | Results table, chart and figures in `results/` | Sohail |
 | `results/` | Scores (`*.json`), tables and figures | everyone |
 
@@ -62,15 +64,28 @@ that `data/bottle/train/good/` exists. Check:
     python -m detectors.padim                  # ~30 s on a CPU; saves results/padim.json and heatmaps
     python -m detectors.vae path/to/vae.pt     # VAE heatmaps from the trained model (vae.pt is in the team Drive)
 
-Diffusion needs a GPU: run `detectors/diffusion_healing.ipynb` in Colab, then copy its
-export `diffusion_heatmaps.npz` into `results/`. Training notebooks for the VAE and the
-DDPM are in `detectors/`.
+    python -m detectors.diffusion              # heals all 83 test bottles on a CPU (~4 min), prints scores
+
+The official diffusion numbers come from Raju's Colab run: `detectors/diffusion_healing.ipynb`
+exports `diffusion_heatmaps.npz`, which goes into `results/` for the figures. A CPU run uses
+different random noise, so it scores very slightly differently (0.989 / 0.956).
+Training notebooks for the VAE and the DDPM are in `detectors/`.
 
 **4. Tables and figures:**
 
     python make_figures.py    # results_table.md, fig_results.png, fig_padim.png, fig_compare.png
 
 **Self-tests:** `python data.py --selftest` and `python evaluate.py --selftest`.
+
+## Demo app
+
+    pip install gradio diffusers
+    python demo.py            # http://127.0.0.1:7860 (starts in ~40 s); add --share for a public link
+    python demo.py --backup   # saves results/demo_backup.png, a static copy in case the live demo fails
+
+Upload a bottle photo or pick one of four examples. You get a verdict from each detector
+(its score as a multiple of its cut-off), the three heatmaps and the diffusion-healed bottle.
+Needs `data/bottle/` and, from the team Drive, `models/vae.pt` and `models/ddpm_bottle_ema/`.
 
 ## Use a detector in your own code
 
@@ -82,5 +97,5 @@ DDPM are in `detectors/`.
     model = PaDiM().fit(d["train_images"])
     run(model.detect, name="padim")            # prints scores, saves results/padim.json
 
-Large files are not in Git: the dataset, `vae.pt`, the DDPM model folder
-`ddpm_bottle_ema` and the heatmap exports (`results/*.npy`, `results/*.npz`).
+Large files are not in Git: the dataset (`data/`), the trained models (`models/vae.pt`,
+`models/ddpm_bottle_ema/`) and the heatmap exports (`results/*.npy`, `results/*.npz`).

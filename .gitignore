@@ -2,3 +2,6 @@ data/
 results/*.npy
 results/preview.png
 results/*.npz
+models/
+__pycache__/
+.claude/
