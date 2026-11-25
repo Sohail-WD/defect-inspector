@@ -1,0 +1,83 @@
+{
+  "zero_shot": {
+    "image_auroc": 0.9333333333333332,
+    "pixel_auroc": 0.689468218098834,
+    "threshold": 0.8188374042510986,
+    "accuracy": 0.8674698795180723,
+    "image_auroc_whole_image": 0.8896825396825397
+  },
+  "few_shot_runs": [
+    {
+      "k": 1,
+      "seed": 0,
+      "image_auroc": 0.9968253968253968,
+      "pixel_auroc": 0.9846641959706676
+    },
+    {
+      "k": 1,
+      "seed": 1,
+      "image_auroc": 0.9968253968253968,
+      "pixel_auroc": 0.984817213292008
+    },
+    {
+      "k": 1,
+      "seed": 2,
+      "image_auroc": 0.996031746031746,
+      "pixel_auroc": 0.984209290442404
+    },
+    {
+      "k": 5,
+      "seed": 0,
+      "image_auroc": 0.9976190476190476,
+      "pixel_auroc": 0.9868810909352497
+    },
+    {
+      "k": 5,
+      "seed": 1,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.986538497671897
+    },
+    {
+      "k": 5,
+      "seed": 2,
+      "image_auroc": 0.9968253968253968,
+      "pixel_auroc": 0.9877387598386584
+    },
+    {
+      "k": 10,
+      "seed": 0,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9876116771723691
+    },
+    {
+      "k": 10,
+      "seed": 1,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9876838576538383
+    },
+    {
+      "k": 10,
+      "seed": 2,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9876973837187486
+    },
+    {
+      "k": 50,
+      "seed": 0,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9882515935426774
+    },
+    {
+      "k": 50,
+      "seed": 1,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9882645025518417
+    },
+    {
+      "k": 50,
+      "seed": 2,
+      "image_auroc": 1.0,
+      "pixel_auroc": 0.9877838472953673
+    }
+  ]
+}
