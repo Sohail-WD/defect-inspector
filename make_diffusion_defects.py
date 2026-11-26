@@ -1,13 +1,14 @@
-"""Phase 3: fake defects with conditional diffusion (Stable Diffusion inpainting). Run on a GPU (Colab T4).
+"""Phase 3: fake defects with conditional diffusion (Stable Diffusion inpainting). Run on a GPU (Colab T4, or a 4 GB laptop GPU in low-memory mode).
 
 Same mask shapes and training bottles as the CutPaste baseline (synthetic.py); Stable Diffusion redraws
 only the masked area from a text prompt ("broken glass ...", "a dark foreign object ..."), and every
 pixel outside the mask is copied back from the original, so only the defect changes.
 
-In Colab (Runtime -> GPU), from the repo folder with data/bottle/ in place:
-    !pip install -q diffusers transformers accelerate
-    !python make_diffusion_defects.py --n 150
-Then zip data/synthetic/diffusion/, download it, unzip into the same place on your laptop, and run:
+From the repo folder with data/bottle/ in place (about half get "healed" away, so make extra and let CLIP pick;
+300 took 75 min on an RTX 3050 Laptop and CLIP kept 162):
+    pip install diffusers transformers accelerate
+    python make_diffusion_defects.py --n 300
+Then:
     python synthetic.py filter data/synthetic/diffusion
     python synthetic.py gallery data/synthetic/diffusion results/fig_fakes_diffusion.png
 """
@@ -25,8 +26,8 @@ RES = 512                # Stable Diffusion 1.5 works at 512x512
 GUIDANCE = 11.0          # stronger pull towards the prompt than the usual 7.5
 
 
-def window(mask, min_size=96, zoom=2.5):
-    """Square crop box (y, x, size) around the mask, about 2.5x the defect's extent, kept inside the image."""
+def window(mask, min_size=96, zoom=4.0):
+    """Square crop box (y, x, size) around the mask, about 4x the defect's extent, kept inside the image."""
     ys, xs = np.nonzero(mask)
     size = int(np.clip(zoom * max(np.ptp(ys), np.ptp(xs)), min_size, mask.shape[0]))
     y = int(np.clip((ys.min() + ys.max()) / 2 - size / 2, 0, mask.shape[0] - size))
@@ -39,8 +40,19 @@ def main(n, out_dir, steps, seed, batch):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print("WARNING: no GPU found; this will be very slow. In Colab: Runtime -> Change runtime type -> T4 GPU.")
-    pipe = StableDiffusionInpaintPipeline.from_pretrained(
-        MODEL, torch_dtype=torch.float16 if device == "cuda" else torch.float32, safety_checker=None).to(device)
+    gpu = device == "cuda"
+    pipe = StableDiffusionInpaintPipeline.from_pretrained(      # on a GPU, the half-size fp16 files: ~2.1 GB instead of ~4.3 GB
+        MODEL, torch_dtype=torch.float16 if gpu else torch.float32, variant="fp16" if gpu else None, safety_checker=None)
+    vram = torch.cuda.get_device_properties(0).total_memory / 2**30 if device == "cuda" else 0
+    if device == "cuda" and vram < 8:
+        # Small GPU (e.g. a 4 GB laptop RTX 3050): keep model parts in normal RAM until needed,
+        # compute attention in slices, and make one image at a time. Slower, but it fits.
+        print(f"{vram:.1f} GB GPU: using low-memory mode")
+        pipe.enable_model_cpu_offload()
+        pipe.enable_attention_slicing()
+        batch = 1
+    else:
+        pipe = pipe.to(device)
     pipe.set_progress_bar_config(disable=True)
 
     good = load_mvtec(size=RES)["train_images"]           # good training bottles only, never test ones
