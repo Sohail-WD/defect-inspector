@@ -19,7 +19,13 @@ Image AUROC: is the bottle defective? Pixel AUROC: is the heatmap in the right p
 0.5 = guessing, 1.0 = perfect. Per-defect-type scores are in
 [results/results_table.md](results/results_table.md).
 
+**Defect types without labels** (Shruti, [detectors/gmm.ipynb](detectors/gmm.ipynb)): a Gaussian Mixture Model groups
+the 63 defective test bottles into 3 types, using PaDiM features of each bottle's most unusual region plus the
+defect's size and peak score. ARI **0.387** against the true types (0 = random, 1 = perfect; 0.282 without the size
+features). Contamination forms its own group; large and small breaks mix.
+
 ![Results](results/fig_results.png)
+![GMM groups vs true defect types](results/fig_gmm.png)
 ![Same bottles through all three detectors](results/fig_compare.png)
 
 ## Going further: few photos, CLIP, and fake defects
@@ -86,6 +92,7 @@ It does not beat PaDiM, and with only 10 good photos it drops to 0.92.
 | `synthetic.py` | Fake defects: masks, CutPaste, CLIP filter, gallery | Sohail |
 | `make_diffusion_defects.py` | Fake defects with Stable Diffusion inpainting (GPU) | Sohail |
 | `use_fakes.py` | Honest cut-offs and a segmenter trained only on fakes | Sohail |
+| `detectors/gmm.ipynb` | Extra: GMM groups defects into types without labels (ARI) | Shruti |
 | `demo.py` | Demo app: upload a bottle, see all four heatmaps and the verdict | Sohail |
 | `make_figures.py` | Results table, chart and figures in `results/` | Sohail |
 | `results/` | Scores (`*.json`), tables and figures | everyone |
