@@ -1,0 +1,78 @@
+{
+  "cutoffs": {
+    "padim_fit_on": 150,
+    "test_image_auroc": 0.996031746031746,
+    "test-set (old)": {
+      "cutoff": 15.948678016662598,
+      "accuracy": 0.9879518072289156,
+      "false_alarms": 0.05,
+      "missed": 0.0
+    },
+    "good only": {
+      "cutoff": 15.587538719177246,
+      "accuracy": 0.9879518072289156,
+      "false_alarms": 0.05,
+      "missed": 0.0
+    },
+    "good + CutPaste fakes": {
+      "cutoff": 13.988155364990234,
+      "accuracy": 0.9759036144578314,
+      "false_alarms": 0.1,
+      "missed": 0.0,
+      "n_fakes": 24
+    },
+    "good + diffusion fakes": {
+      "cutoff": 14.578486442565918,
+      "accuracy": 0.9759036144578314,
+      "false_alarms": 0.1,
+      "missed": 0.0,
+      "n_fakes": 57
+    }
+  },
+  "segmenter": {
+    "CutPaste": {
+      "image_auroc": 0.9711640211640211,
+      "pixel_auroc": 0.915435106447843,
+      "image_auroc_std": 0.00374130572056373,
+      "pixel_auroc_std": 0.005648129350675052,
+      "n_fakes": 83,
+      "n_good": 209
+    },
+    "diffusion (83, matched)": {
+      "image_auroc": 0.9809523809523809,
+      "pixel_auroc": 0.8940343322042863,
+      "image_auroc_std": 0.0017144816662454595,
+      "pixel_auroc_std": 0.003014866203685093,
+      "n_fakes": 83,
+      "n_good": 209
+    },
+    "diffusion (all)": {
+      "image_auroc": 0.9706349206349204,
+      "pixel_auroc": 0.8971080985204107,
+      "image_auroc_std": 0.00518410527573162,
+      "pixel_auroc_std": 0.007658020510943907,
+      "n_fakes": 162,
+      "n_good": 209
+    },
+    "both": {
+      "image_auroc": 0.9838624338624339,
+      "pixel_auroc": 0.912000602032862,
+      "image_auroc_std": 0.00411543629262013,
+      "pixel_auroc_std": 0.0035123524520252465,
+      "n_fakes": 245,
+      "n_good": 209
+    },
+    "few_shot": {
+      "10": {
+        "image_auroc": 0.9184303350970017,
+        "pixel_auroc": 0.8468101521529846,
+        "n_fakes": 10.333333333333334
+      },
+      "50": {
+        "image_auroc": 0.9580246913580246,
+        "pixel_auroc": 0.887305490269218,
+        "n_fakes": 58.333333333333336
+      }
+    }
+  }
+}
