@@ -1,4 +1,4 @@
-"""Demo app: upload a bottle photo, see what all four detectors think.
+"""Demo app: upload a bottle photo, see what all four detectors think; or let Stable Diffusion paint a fake defect first.
 
     python demo.py            # opens on http://127.0.0.1:7860
     python demo.py --share    # also prints a public link (needs internet)
@@ -13,7 +13,7 @@ from pathlib import Path
 import gradio as gr
 import matplotlib
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from data import load_mvtec
 from detectors import diffusion, vae
@@ -66,15 +66,60 @@ def inspect(photo):
             healed_big, overlay(img, maps["diffusion"], CUT["diffusion"]), overlay(img, maps["clip"], CUT["clip"]))
 
 
+SD = {}   # Stable Diffusion, loaded on the first "make a fake" click so the inspector starts fast
+
+
+def make_fake(kind, seed):
+    """Paint a fake defect into a random good training bottle with Stable Diffusion, then inspect the result."""
+    import make_diffusion_defects as mdd
+    from synthetic import SIZE, clip_damaged, make_mask
+    if not SD:
+        SD["pipe"], SD["device"], _ = mdd.load_pipe()
+        SD["good"] = load_mvtec(size=mdd.RES)["train_images"]     # good training bottles only, never test ones
+    rng = np.random.default_rng(int(seed))
+    bottle = SD["good"][int(rng.integers(len(SD["good"])))]
+    mask = make_mask(rng, kind, size=mdd.RES)
+    fake = mdd.paint(SD["pipe"], SD["device"], [bottle], [mask], kind, seed=int(seed))[0][0]
+    edge = mask.astype(bool) & ~np.asarray(Image.fromarray(mask.astype(np.uint8) * 255).filter(ImageFilter.MinFilter(5))).astype(bool)
+    outlined = bottle.copy()
+    outlined[edge] = (255, 0, 0)
+    # The same CLIP check the main pipeline uses to drop "healed" fakes (synthetic.clip_filter, margin 0.02)
+    small = lambda a: np.asarray(Image.fromarray(a).resize((SIZE, SIZE), Image.BILINEAR))
+    small_mask = np.asarray(Image.fromarray(mask.astype(np.uint8)).resize((SIZE, SIZE), Image.NEAREST))
+    after, before = (float(p[0]) for p in clip_damaged(clip, [small(fake)], [small(bottle)], [small_mask]))
+    kept = after - before > 0.02
+    check = (f"### {'✅ Kept by CLIP: a defect appeared' if kept else '❌ Rejected by CLIP: healed, no visible defect'}\n\n"
+             f"CLIP 'damaged' score of the outlined area: **{before:.2f} → {after:.2f}** "
+             f"({'up' if after > before else 'down'} {abs(after - before):.2f}; kept only if it rises by more than 0.02). "
+             "In the main run, 162 of 300 fakes passed this check.\n\n---\n")
+    summary, *maps = inspect(fake)
+    return (outlined, fake, check + summary, *maps)
+
+
 with gr.Blocks(title="Defect Inspector") as app:
     gr.Markdown("# An inspector that has never seen a defect\n"
-                "Three generative models trained **only on good bottles** (MVTec AD), plus CLIP shown just 10 of them. "
-                "Upload a bottle photo, or pick an example, and see where each one thinks the defect is.")
-    with gr.Row():
-        photo = gr.Image(type="numpy", label="Bottle photo", height=300)
-        summary = gr.Markdown()
-    button = gr.Button("Inspect", variant="primary")
-    gr.Examples(EXAMPLES, inputs=photo, label="Examples: good, broken large, broken small, contamination")
+                "Three generative models trained **only on good bottles** (MVTec AD), plus CLIP shown just 10 of them.")
+    with gr.Tab("Inspect a photo"):
+        gr.Markdown("Upload a bottle photo, or pick an example, and see where each one thinks the defect is.")
+        with gr.Row():
+            photo = gr.Image(type="numpy", label="Bottle photo", height=300)
+            summary = gr.Markdown()
+        button = gr.Button("Inspect", variant="primary")
+        gr.Examples(EXAMPLES, inputs=photo, label="Examples: good, broken large, broken small, contamination")
+    with gr.Tab("Make a fake defect (Stable Diffusion)"):
+        gr.Markdown("We draw a defect shape on a **good** bottle, and Stable Diffusion inpainting paints a defect "
+                    "only inside it from a text prompt. The four detectors then judge the fake. "
+                    "The first click loads Stable Diffusion (about a minute); each fake then takes about 20 s on a 4 GB GPU. "
+                    "About half come out invisible (\"healed\" back to normal glass); CLIP then checks the fake "
+                    "and says whether the main pipeline would keep or reject it.")
+        with gr.Row():
+            kind = gr.Radio(["broken", "contamination"], value="broken", label="Defect to paint")
+            seed = gr.Number(value=7, precision=0, label="Seed (change it for a different bottle and shape)")
+        make = gr.Button("Make a fake defect", variant="primary")
+        with gr.Row():
+            fake_src = gr.Image(label="Good bottle + the shape we drew (red)", height=300)
+            fake_out = gr.Image(label="After Stable Diffusion", height=300)
+            fake_summary = gr.Markdown()
     with gr.Row():
         out_padim = gr.Image(label="MLE (PaDiM) heatmap", height=256)
         out_vae = gr.Image(label="VAE heatmap", height=256)
@@ -83,7 +128,9 @@ with gr.Blocks(title="Defect Inspector") as app:
         out_clip = gr.Image(label="CLIP heatmap (10 photos)", height=256)
     gr.Markdown("Colour: blue = normal, green = at the cut-off, red = twice the cut-off or more. "
                 "Diffusion takes a few seconds on a laptop CPU.")
-    button.click(inspect, photo, [summary, out_padim, out_vae, out_healed, out_diff, out_clip])
+    heatmaps = [out_padim, out_vae, out_healed, out_diff, out_clip]
+    button.click(inspect, photo, [summary, *heatmaps])
+    make.click(make_fake, [kind, seed], [fake_src, fake_out, fake_summary, *heatmaps])
 
 def save_backup(out="results/demo_backup.png"):
     """Static copy of the demo on the four examples, for when the live app can't run."""

@@ -97,20 +97,24 @@ def make_cutpaste(n=150, out_dir="data/synthetic/cutpaste", seed=0):
     print(f"saved {n} CutPaste fakes to {out_dir}")
 
 
+def clip_damaged(clip, fakes, originals, masks):
+    """CLIP's 'damaged' probability for the 128x128 area around each mask, in the fake and in the original (SIZE images)."""
+    crops_fake, crops_orig = [], []
+    for im, orig, m in zip(fakes, originals, masks):
+        ys, xs = np.nonzero(m)
+        y, x = int(np.clip(ys.mean() - 64, 0, SIZE - 128)), int(np.clip(xs.mean() - 64, 0, SIZE - 128))
+        crops_fake.append(im[y:y + 128, x:x + 128])
+        crops_orig.append(orig[y:y + 128, x:x + 128])
+    return clip._prob_damaged(np.stack(crops_fake)), clip._prob_damaged(np.stack(crops_orig))
+
+
 def clip_filter(out_dir, margin=0.02):
     """Keep a fake only if CLIP finds the area around its mask more 'damaged' than the same area of the original bottle."""
     from data import load_mvtec
     from detectors.clip_detector import CLIPDetector
     good = load_mvtec()["train_images"]
     ims, ms, meta = load(out_dir, keep_only=False)
-    clip = CLIPDetector()
-    crops_fake, crops_orig = [], []
-    for im, m, r in zip(ims, ms, meta):
-        ys, xs = np.nonzero(m)
-        y, x = int(np.clip(ys.mean() - 64, 0, SIZE - 128)), int(np.clip(xs.mean() - 64, 0, SIZE - 128))
-        crops_fake.append(im[y:y + 128, x:x + 128])
-        crops_orig.append(good[r["source_train_index"]][y:y + 128, x:x + 128])
-    p_fake, p_orig = clip._prob_damaged(np.stack(crops_fake)), clip._prob_damaged(np.stack(crops_orig))
+    p_fake, p_orig = clip_damaged(CLIPDetector(), ims, [good[r["source_train_index"]] for r in meta], ms)
     for r, a, b in zip(meta, p_fake, p_orig):
         r.update(clip_damaged=float(a), clip_damaged_original=float(b), kept=bool(a - b > margin))
     Path(out_dir, "meta.json").write_text(json.dumps(meta, indent=1))
